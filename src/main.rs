@@ -17,7 +17,7 @@ const POST_URL: &str = "https://slack.com/api/users.setPhoto";
 const IMAGE_SRC: &str = "images/profile-icon.png";
 const OUTPUT_FILE: &str = "output.png";
 const TOKEN_SRC: &str = "token.txt";
-const CRON_INTERVAL: &str = "1/30 * * * * *";
+const CRON_INTERVAL: &str = "1/60 * * * * *";
 
 fn generate_image(src_img: DynamicImage, rgb: Vec<u8>) -> RgbImage {
     let (width, height) = src_img.dimensions();
@@ -117,5 +117,7 @@ fn exec_scheduler() {
 }
 
 fn main() {
+    // exec once
+    generate_image_and_post();
     exec_scheduler();
 }
