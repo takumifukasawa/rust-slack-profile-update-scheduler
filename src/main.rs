@@ -1,6 +1,9 @@
 extern crate image;
 extern crate rayon;
+extern crate  job_scheduler;
 
+use job_scheduler::{JobScheduler, Job};
+use std::time::Duration;
 use std::env;
 use std::process::Command;
 use image::DynamicImage;
@@ -14,6 +17,7 @@ const POST_URL: &str = "https://slack.com/api/users.setPhoto";
 const IMAGE_SRC: &str = "images/profile-icon.png";
 const OUTPUT_FILE: &str = "output.png";
 const TOKEN_SRC: &str = "token.txt";
+const CRON_INTERVAL: &str = "1/30 * * * * *";
 
 fn generate_image(src_img: DynamicImage, rgb: Vec<u8>) -> RgbImage {
     let (width, height) = src_img.dimensions();
@@ -45,12 +49,14 @@ fn generate_image(src_img: DynamicImage, rgb: Vec<u8>) -> RgbImage {
 
 fn build_absolute_path(src: &str) -> String {
     let current_dir = env::current_dir().unwrap();
+    // for debug
+    // println!("current dir: {}", current_dir.display());
+    // println!("current exe: {}", env::current_exe().unwrap().display());
     let path = String::from(current_dir.to_str().unwrap()) + "/" + src;
     return path;
 }
 
-
-fn main() {
+fn generate_image_and_post() {
     let src_path = build_absolute_path(IMAGE_SRC);
     let output_path = build_absolute_path(OUTPUT_FILE);
     let token_path = build_absolute_path(TOKEN_SRC);
@@ -97,4 +103,19 @@ fn main() {
     println!();
     println!("{}", std::str::from_utf8(&command_stderr).unwrap());
     println!();
+}
+
+fn exec_scheduler() {
+    let mut scheduler = JobScheduler::new();
+    scheduler.add(Job::new(CRON_INTERVAL.parse().unwrap(), || {
+        generate_image_and_post();
+    }));
+    loop {
+        scheduler.tick();
+        std::thread::sleep(Duration::from_millis(1000));
+    }
+}
+
+fn main() {
+    exec_scheduler();
 }
