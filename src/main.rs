@@ -1,6 +1,6 @@
 extern crate image;
 extern crate rayon;
-extern crate  job_scheduler;
+extern crate job_scheduler;
 
 use job_scheduler::{JobScheduler, Job};
 use std::time::Duration;
@@ -12,12 +12,16 @@ use image::{Rgb, RgbImage};
 use rand::Rng;
 use rayon::prelude::*;
 use std::fs;
+use chrono::Local;
 
 const POST_URL: &str = "https://slack.com/api/users.setPhoto";
-const IMAGE_SRC: &str = "images/profile-icon.png";
+const IMAGE_SRC_DEFAULT: &str = "images/profile-icon-default.png";
+const IMAGE_SRC_OPEN_EYES: &str = "images/profile-icon-open-eyes.png";
 const OUTPUT_FILE: &str = "output.png";
 const TOKEN_SRC: &str = "token.txt";
-const CRON_INTERVAL: &str = "1/60 * * * * *";
+// const CRON_INTERVAL: &str = "1/60 * * * * *";
+// const CRON_INTERVAL: &str = "0 10/5 * * * *";
+const CRON_INTERVAL: &str = "0 1/5 * * * * *";
 
 fn generate_image(src_img: DynamicImage, rgb: Vec<u8>) -> RgbImage {
     let (width, height) = src_img.dimensions();
@@ -57,13 +61,22 @@ fn build_absolute_path(src: &str) -> String {
 }
 
 fn generate_image_and_post() {
-    let src_path = build_absolute_path(IMAGE_SRC);
+    let src_path_default = build_absolute_path(IMAGE_SRC_DEFAULT);
+    let src_path_open_eyes = build_absolute_path(IMAGE_SRC_OPEN_EYES);
     let output_path = build_absolute_path(OUTPUT_FILE);
     let token_path = build_absolute_path(TOKEN_SRC);
 
-    let img: DynamicImage = image::open(src_path).unwrap();
-
     let mut rng = rand::thread_rng();
+
+    let img_src_path;
+    let img_src_dice = rng.gen_range(0.0..1.0);
+    if img_src_dice > 0.99  {
+	img_src_path = src_path_open_eyes;
+    } else {
+ 	img_src_path = src_path_default;
+    }
+
+    let img: DynamicImage = image::open(img_src_path).unwrap();
 
     let r = rng.gen_range(0..255);
     let g = rng.gen_range(0..255);
@@ -99,6 +112,10 @@ fn generate_image_and_post() {
     let command_stdout = curl_command.stdout;
     let command_stderr = curl_command.stderr;
 
+    let now = Local::now();
+
+    println!("formatted time: {}", now.format("%Y-%m-%d %H:%M:%S"));
+    println!("img src dice: {}", img_src_dice);
     println!("{}", std::str::from_utf8(&command_stdout).unwrap());
     println!();
     println!("{}", std::str::from_utf8(&command_stderr).unwrap());
